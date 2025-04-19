@@ -1,0 +1,16 @@
+{
+    "version": 2,
+    "functions": {
+      "main_ligero.py": {
+        "runtime": "python3.9",
+        "maxDuration": 20
+      }
+    },
+    "routes": [
+      {
+        "src": "/resolver-integral-light",
+        "dest": "/main_ligero.py"
+      }
+    ]
+  }
+  
