@@ -1,16 +1,17 @@
 {
     "version": 2,
-    "functions": {
-      "main_ligero.py": {
-        "runtime": "python3.9",
-        "maxDuration": 20
+  
+    "builds": [
+      {
+        "src": "main_ligero.py",
+        "use": "@vercel/python"
       }
-    },
+    ],
+  
     "routes": [
       {
         "src": "/resolver-integral-light",
         "dest": "/main_ligero.py"
       }
     ]
-  }
-  
+  }  
