@@ -1,0 +1,92 @@
+from datasets import load_dataset
+from transformers import (
+    T5Tokenizer, T5ForConditionalGeneration,
+    Trainer, TrainingArguments
+)
+import torch
+import numpy as np
+from pathlib import Path
+
+# Configuración
+MODEL_NAME = "t5-small"
+DATASET_PATH = "data/formato_expandido.jsonl"
+OUTPUT_DIR = "models/t5_formateador_expandido"
+MAX_SAMPLES = 1000  # puedes ajustarlo
+
+# Cargar y truncar dataset
+raw_dataset = load_dataset("json", data_files={"data": DATASET_PATH})["data"]
+raw_dataset = raw_dataset.select(range(min(MAX_SAMPLES, len(raw_dataset))))
+datasets = raw_dataset.train_test_split(test_size=0.1)
+
+# Tokenizador y modelo base
+tokenizer = T5Tokenizer.from_pretrained(MODEL_NAME)
+model = T5ForConditionalGeneration.from_pretrained(MODEL_NAME)
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model.to(device)
+
+# Función de tokenización
+def tokenize_fn(example):
+    inputs = tokenizer(
+        example["input"],
+        max_length=128,
+        padding="max_length",
+        truncation=True
+    )
+    targets = tokenizer(
+        example["output"],
+        max_length=32,
+        padding="max_length",
+        truncation=True
+    )
+    inputs["labels"] = targets["input_ids"]
+    return inputs
+
+# Aplicar tokenización
+tokenized_train = datasets["train"].map(tokenize_fn, remove_columns=datasets["train"].column_names)
+tokenized_val = datasets["test"].map(tokenize_fn, remove_columns=datasets["test"].column_names)
+
+# Métrica de exactitud
+def compute_metrics(eval_pred):
+    predictions, labels = eval_pred
+    if isinstance(predictions, tuple):
+        predictions = predictions[0]
+    if predictions.ndim == 3:
+        predictions = np.argmax(predictions, axis=-1)
+    labels = np.where(labels != -100, labels, tokenizer.pad_token_id)
+
+    decoded_preds = tokenizer.batch_decode(predictions, skip_special_tokens=True)
+    decoded_labels = tokenizer.batch_decode(labels, skip_special_tokens=True)
+
+    exact_matches = [int(p.strip() == l.strip()) for p, l in zip(decoded_preds, decoded_labels)]
+    return {"exact_match": np.mean(exact_matches)}
+
+# Argumentos de entrenamiento
+training_args = TrainingArguments(
+    output_dir=OUTPUT_DIR,
+    num_train_epochs=4,
+    per_device_train_batch_size=4,
+    per_device_eval_batch_size=2,
+    eval_strategy="epoch",
+    save_strategy="epoch",
+    save_total_limit=2,
+    learning_rate=3e-4,
+    logging_steps=50,
+    report_to="none"
+)
+
+# Entrenador
+trainer = Trainer(
+    model=model,
+    args=training_args,
+    train_dataset=tokenized_train,
+    eval_dataset=tokenized_val,
+    compute_metrics=compute_metrics
+)
+
+# Entrenar
+trainer.train()
+
+# Guardar modelo final
+model.save_pretrained(OUTPUT_DIR)
+tokenizer.save_pretrained(OUTPUT_DIR)
+print(f"\n✅ Modelo formateador expandido entrenado. Guardado en: {OUTPUT_DIR}")

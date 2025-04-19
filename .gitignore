@@ -1,0 +1,49 @@
+# === PYTHON ===
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pkl
+*.ipynb_checkpoints
+
+# Entornos virtuales
+.env/
+.venv/
+venv/
+ENV/
+env.bak/
+*.env
+
+# Archivos de ejecución y build
+*.exe
+*.out
+*.app
+*.log
+
+# === MODEL FILES ===
+# No subas modelos entrenados grandes por defecto
+models/
+!models/.gitkeep  # si deseas mantener la carpeta vacía
+
+# === DATA ===
+# Datasets pesados o temporales
+data/*.jsonl
+!data/corpus_integrales.jsonl
+resultados_benchmark.csv
+resultados_benchmark_expandido.csv
+
+# === VISUALIZACIÓN ===
+*.png
+*.jpg
+*.jpeg
+*.svg
+*.pdf
+
+# === VS CODE / EDITORES ===
+.vscode/
+*.code-workspace
+
+# === SISTEMA ===
+.DS_Store
+Thumbs.db
+desktop.ini
